@@ -4,15 +4,19 @@ let errorMsg = document.getElementById("error_msg");
 let totalTaskCount = document.getElementById("total_task_count");
 let clearTask = document.getElementById("clear_task");
 let taskListParent = document.getElementById("task-list-parent");
+let submitFormBtn = document.getElementById("submit_form_btn");
 let taskList = [];
+let editItemId = null;
+import Toastify from "toastify-js";
+import "toastify-js/src/toastify.css";
 
 // this is event handler to add task;
 
-mainForm.addEventListener("submit", addTodo);
+mainForm.addEventListener("submit", addOrUpdateToDO);
 
 // function for adding task to list by event listener;
 
-function addTodo(event) {
+function addOrUpdateToDO(event) {
   event.preventDefault();
   let inputValue = createInput.value;
 
@@ -20,12 +24,37 @@ function addTodo(event) {
     errorMsg.classList.remove("hidden");
     return;
   }
+  if (editItemId) {
+    // update item
+    const updateListAfterEdit = taskList.map((item) => {
+      if ("edit-" + item.id == editItemId) {
+        return {
+          ...item,
+          title: inputValue,
+        };
+      } else {
+        return item;
+      }
+    });
+    taskList = updateListAfterEdit;
+    submitFormBtn.innerText = "Add";
+    editItemId = null;
+  } else {
+    // add item;
+    taskList.push({
+      id: crypto.randomUUID(),
+      title: inputValue,
+      isDone: false,
+    });
+    Toastify({
+      text: "Task added successfully",
+      className: "success",
+      style: {
+        background: "linear-gradient(to right, #00b09b, #96c93d)",
+      },
+    }).showToast();
+  }
 
-  taskList.push({
-    id: crypto.randomUUID(),
-    title: inputValue,
-    isDone: false,
-  });
   renderHtmlElements();
 
   // createInput.value = ""
@@ -49,8 +78,9 @@ function renderHtmlElements() {
               ${item.isDone ? "Undo" : "Done"}
             </button>
             <button
+            id="edit-${item.id}"
               type="button"
-              class="text-success bg-neutral-primary border border-success hover:bg-success hover:text-white focus:ring-4 focus:ring-neutral-tertiary font-medium leading-5 rounded-sm text-xs px-3 py-1.5 focus:outline-none"
+              class="text-success edit-btn bg-neutral-primary border border-success hover:bg-success hover:text-white focus:ring-4 focus:ring-neutral-tertiary font-medium leading-5 rounded-sm text-xs px-3 py-1.5 focus:outline-none"
             >
               Edit
             </button>
@@ -73,11 +103,35 @@ function renderHtmlElements() {
 renderHtmlElements();
 
 // Edit task
+taskListParent.addEventListener("click", (event) => {
+  let checkEditBtn = event.target.classList.contains("edit-btn");
+  if (checkEditBtn == false) {
+    return;
+  }
+  let idFromBtnTag = event.target.getAttribute("id");
 
-//update task;
+  editItemId = idFromBtnTag;
+
+  let editItem = taskList.find((item) => {
+    return "edit-" + item.id == editItemId;
+  });
+  if (!editItem) return;
+
+  console.log(editItem);
+  createInput.value = editItem.title;
+  submitFormBtn.innerText = "Update";
+
+  Toastify({
+    text: "Task edited successfully",
+    className: "success",
+    style: {
+      background: "linear-gradient(to right, #00b09b, #96c93d)",
+    },
+  }).showToast();
+});
 
 // delete task;
-let deleteBtns = document.querySelectorAll(".delete-btn");
+
 taskListParent.addEventListener("click", (event) => {
   let checkDeleteBtn = event.target.classList.contains("delete-btn");
   if (checkDeleteBtn == false) {
@@ -96,6 +150,14 @@ taskListParent.addEventListener("click", (event) => {
   taskList = updateTasksAfterDelete;
   renderHtmlElements();
   calculateTotalTask();
+
+  Toastify({
+    text: "Task deleted successfully",
+    className: "success",
+    style: {
+      background: "linear-gradient(to right, #00b09b, #96c93d)",
+    },
+  }).showToast();
 });
 // change tasks
 
@@ -118,6 +180,14 @@ taskListParent.addEventListener("click", (event) => {
   taskList = updateListAfterChangingStatus;
 
   renderHtmlElements();
+
+  Toastify({
+    text: "Task updated successfully",
+    className: "success",
+    style: {
+      background: "linear-gradient(to right, #00b09b, #96c93d)",
+    },
+  }).showToast();
 });
 
 // clear task
@@ -153,7 +223,7 @@ calculateTotalTask();
 ////  clear all tasks;
 
 function clearAllTasks() {
-  clear_task.addEventListener("click", () => {
+  clearTask.addEventListener("click", () => {
     taskList = [];
     renderHtmlElements();
     calculateTotalTask();
